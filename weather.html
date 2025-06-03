@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skyscope - Weather Forecast</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <style>
+        :root {
+            --primary: #5b8cff;
+            --secondary: #ff9a5b;
+            --accent: #ff5b8c;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: radial-gradient(circle at top left, #f5f7ff, #e3eeff);
+            min-height: 100vh;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes tornadoIn {
+            0% { transform: translateX(-100%) rotate(-360deg); opacity: 0; }
+            100% { transform: translateX(0) rotate(0); opacity: 1; }
+        }
+        
+        .tornado-animation {
+            animation: tornadoIn 1.5s ease-out forwards;
+        }
+        
+        .float-animation {
+            animation: float 4s ease-in-out infinite;
+        }
+        
+        .weather-card {
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .weather-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        .search-dropdown {
+            max-height: 200px;
+            overflow-y: auto;
+            border-radius: 0 0 15px 15px;
+        }
+        
+        .search-container {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(45deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .squish-effect {
+            transition: transform 0.2s ease;
+        }
+        
+        .squish-effect:active {
+            transform: scale(0.95);
+        }
+        
+        .lottie-weather {
+            width: 100px;
+            height: 100px;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+    <div class="container mx-auto max-w-6xl">
+        <!-- Animated Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-5xl md:text-6xl font-bold mb-2 tornado-animation gradient-text">Skyscope</h1>
+            <p class="text-lg text-gray-600">Your weather companion</p>
+            <div class="mt-4 flex justify-center">
+                <lottie-player src="https://assets5.lottiefiles.com/packages/lf20_2cwDXD.json" background="transparent" speed="1" style="width: 100px; height: 100px;" loop autoplay class="float-animation"></lottie-player>
+            </div>
+        </header>
+        
+        <!-- Search Section -->
+        <section class="mb-12">
+            <div class="search-container p-6 max-w-2xl mx-auto">
+                <div class="flex flex-col md:flex-row gap-4 items-center">
+                    <div class="relative flex-grow w-full">
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                id="cityInput" 
+                                placeholder="🌍 Enter a city name..." 
+                                class="w-full px-6 py-4 border-0 rounded-2xl bg-white/80 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300 text-lg"
+                                autocomplete="off"
+                            >
+                            <div id="autocompleteDropdown" class="absolute z-10 w-full mt-1 bg-white/90 border border-gray-200 rounded-2xl shadow-xl search-dropdown hidden"></div>
+                        </div>
+                    </div>
+                    <button id="searchBtn" class="px-6 py-4 bg-gradient-to-r from-blue-400 to-purple-500 text-white rounded-2xl hover:opacity-90 transition-all shadow-lg squish-effect text-lg font-bold whitespace-nowrap">
+                        Search
+                    </button>
+                </div>
+                <div class="text-center my-4 text-gray-500">Or</div>
+                <button id="currentLocationBtn" class="w-full px-6 py-4 bg-gradient-to-r from-green-400 to-teal-500 text-white rounded-2xl hover:opacity-90 transition-all shadow-lg squish-effect text-lg font-bold flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Use Current Location
+                </button>
+                
+                <div id="recentSearches" class="mt-6 hidden animate__animated animate__fadeIn">
+                    <select id="recentCities" class="w-full px-6 py-3 bg-white/80 border-0 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300 text-lg appearance-none">
+                        <option value="">🔍 Recently searched cities</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Current Weather -->
+        <section class="mb-12">
+            <div id="currentWeather" class="max-w-2xl mx-auto weather-card p-8 hidden animate__animated animate__fadeIn">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div class="flex-1">
+                        <h2 id="currentCity" class="text-3xl font-bold text-gray-800 mb-1"></h2>
+                        <p id="currentDate" class="text-lg text-gray-600 mb-4"></p>
+                        <div class="flex items-center gap-2">
+                            <div id="currentWeatherIcon" class="text-5xl"></div>
+                            <p id="currentConditions" class="text-xl text-gray-700 capitalize"></p>
+                        </div>
+                    </div>
+                    <div class="flex-1 flex justify-center">
+                        <div id="lottieWeather" class="lottie-weather"></div>
+                    </div>
+                </div>
+                <div class="mt-8 grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="text-center p-4 bg-white/50 rounded-xl">
+                        <p class="text-4xl font-bold text-blue-600" id="currentTemp"></p>
+                        <p class="text-gray-600">Temperature</p>
+                    </div>
+                    <div class="text-center p-4 bg-white/50 rounded-xl">
+                        <p class="text-4xl font-bold text-green-600" id="currentWind"></p>
+                        <p class="text-gray-600">Wind</p>
+                    </div>
+                    <div class="text-center p-4 bg-white/50 rounded-xl">
+                        <p class="text-4xl font-bold text-purple-600" id="currentHumidity"></p>
+                        <p class="text-gray-600">Humidity</p>
+                    </div>
+                </div>
+                <div id="airQuality" class="mt-6 p-4 rounded-xl hidden text-white text-center">
+                    <p class="font-bold text-lg" id="aqiValue"></p>
+                    <p class="text-sm" id="aqiDescription"></p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Forecast Section -->
+        <section>
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-8 animate__animated animate__fadeIn gradient-text">5-Day Forecast</h2>
+            <div id="forecastContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-12"></div>
+        </section>
+        
+        <!-- Error Section -->
+        <div id="errorContainer" class="max-w-2xl mx-auto p-6 bg-red-100/90 border-l-4 border-red-500 text-red-700 rounded-r-xl hidden animate__animated animate__shakeX" role="alert">
+            <div class="flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <p id="errorMessage" class="text-lg"></p>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="text-center text-gray-600 py-6 mt-12">
+        <div class="flex justify-center gap-4 mb-2">
+            <a href="#" class="text-gray-500 hover:text-blue-500 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+            </a>
+            <a href="#" class="text-gray-500 hover:text-blue-400 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+        // Config
+        const API_KEY = '122e2dfc70bc3686253248efd7447ef4';
+        const RECENT_SEARCHES_KEY = 'recentWeatherSearches';
+        const MAX_RECENT_SEARCHES = 5;
+        const CITIES_API = 'https://countriesnow.space/api/v0.1/countries/population/cities';
+        
+        // Elements
+        const cityInput = document.getElementById('cityInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const currentLocationBtn = document.getElementById('currentLocationBtn');
+        const recentSearches = document.getElementById('recentSearches');
+        const recentCities = document.getElementById('recentCities');
+        const currentWeather = document.getElementById('currentWeather');
+        const forecastContainer = document.getElementById('forecastContainer');
+        const errorContainer = document.getElementById('errorContainer');
+        const autocompleteDropdown = document.getElementById('autocompleteDropdown');
+        const lottieWeather = document.getElementById('lottieWeather');
+        
+        // State
+        let recentCitiesList = JSON.parse(localStorage.getItem(RECENT_SEARCHES_KEY)) || [];
+        let debounceTimer;
+        let citiesDatabase = [];
+        
+        // Lottie animations mapping
+        const weatherAnimations = {
+            '01d': 'https://assets1.lottiefiles.com/packages/lf20_kdx2peqy.json', // clear sky day
+            '01n': 'https://assets1.lottiefiles.com/packages/lf20_2yjsjyxj.json', // clear sky night
+            '02d': 'https://assets1.lottiefiles.com/packages/lf20_pmvv7ccm.json', // few clouds day
+            '02n': 'https://assets1.lottiefiles.com/packages/lf20_pmvv7ccm.json', // few clouds night
+            '03d': 'https://assets1.lottiefiles.com/packages/lf20_1a8dx7xt.json', // scattered clouds
+            '03n': 'https://assets1.lottiefiles.com/packages/lf20_1a8dx7xt.json',
+            '04d': 'https://assets1.lottiefiles.com/packages/lf20_1a8dx7xt.json', // broken clouds
+            '04n': 'https://assets1.lottiefiles.com/packages/lf20_1a8dx7xt.json',
+            '09d': 'https://assets1.lottiefiles.com/packages/lf20_6cfs5elk.json', // shower rain
+            '09n': 'https://assets1.lottiefiles.com/packages/lf20_6cfs5elk.json',
+            '10d': 'https://assets1.lottiefiles.com/packages/lf20_6cfs5elk.json', // rain
+            '10n': 'https://assets1.lottiefiles.com/packages/lf20_6cfs5elk.json',
+            '11d': 'https://assets1.lottiefiles.com/packages/lf20_ghg9hz1x.json', // thunderstorm
+            '11n': 'https://assets1.lottiefiles.com/packages/lf20_ghg9hz1x.json',
+            '13d': 'https://assets1.lottiefiles.com/packages/lf20_3vnl1t8q.json', // snow
+            '13n': 'https://assets1.lottiefiles.com/packages/lf20_3vnl1t8q.json',
+            '50d': 'https://assets1.lottiefiles.com/packages/lf20_ysrn2iwp.json', // mist
+            '50n': 'https://assets1.lottiefiles.com/packages/lf20_ysrn2iwp.json'
+        };
+        
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            updateRecentSearchesUI();
+            loadLastSearchedCity();
+            fetchCitiesDatabase();
+        });
+        
+        // Event Listeners
+        searchBtn.addEventListener('click', handleSearch);
+        currentLocationBtn.addEventListener('click', handleCurrentLocation);
+        recentCities.addEventListener('change', handleRecentCitySelect);
+        cityInput.addEventListener('input', handleCityInput);
+        document.addEventListener('click', (e) => {
+            if (!cityInput.contains(e.target) && !autocompleteDropdown.contains(e.target)) {
+                autocompleteDropdown.classList.add('hidden');
+            }
+        });
+        
+        // Handlers
+        function handleSearch() {
+            const city = cityInput.value.trim();
+            if (!city) {
+                showError('Please enter a city name');
+                return;
+            }
+            fetchWeather(city);
+        }
+        
+        function handleCurrentLocation() {
+            if (!navigator.geolocation) {
+                showError('Geolocation is not supported by your browser');
+                return;
+            }
+            
+            currentLocationBtn.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Locating...
+            `;
+            
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    const { latitude, longitude } = position.coords;
+                    fetchWeatherByCoords(latitude, longitude);
+                    currentLocationBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Use Current Location
+                    `;
+                },
+                error => {
+                    showError('Unable to retrieve your location');
+                    currentLocationBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Use Current Location
+                    `;
+                }
+            );
+        }
+        
+        function handleRecentCitySelect(e) {
+            const city = e.target.value;
+            if (city) {
+                cityInput.value = city;
+                fetchWeather(city);
+            }
+        }
+        
+        function handleCityInput(e) {
+            const query = e.target.value.trim();
+            
+            clearTimeout(debounceTimer);
+            
+            if (query.length < 2) {
+                autocompleteDropdown.classList.add('hidden');
+                return;
+            }
+            
+            debounceTimer = setTimeout(() => {
+                showAutocompleteSuggestions(query);
+            }, 300);
+        }
+        
+        // API Functions
+        async function fetchWeather(city) {
+            try {
+                searchBtn.innerHTML = `
+                    <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Searching...
+                `;
+                
+                const geoResponse = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=1&appid=${API_KEY}`);
+                const geoData = await geoResponse.json();
+                
+                if (!geoData.length) {
+                    showError('City not found');
+                    searchBtn.textContent = 'Search';
+                    return;
+                }
+                
+                const { lat, lon, name, country } = geoData[0];
+                fetchWeatherByCoords(lat, lon, name, country);
+                searchBtn.textContent = 'Search';
+            } catch (error) {
+                showError('Failed to fetch weather data');
+                searchBtn.textContent = 'Search';
+            }
+        }
+        
+        async function fetchWeatherByCoords(lat, lon, cityName, countryCode) {
+            try {
+                const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`);
+                const weatherData = await weatherResponse.json();
+                
+                const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`);
+                const forecastData = await forecastResponse.json();
+                
+                updateCurrentWeatherUI(weatherData, cityName || weatherData.name, countryCode);
+                updateForecastUI(forecastData);
+                
+                addToRecentSearches(cityName || weatherData.name);
+                hideError();
+            } catch (error) {
+                showError('Failed to fetch weather data');
+            }
+        }
+        
+        async function fetchCitiesDatabase() {
+            try {
+                const response = await fetch('https://countriesnow.space/api/v0.1/countries/population/cities');
+                const data = await response.json();
+                if (data.data && data.data.length) {
+                    citiesDatabase = data.data.map(city => ({
+                        name: city.city,
+                        country: city.country
+                    }));
+                }
+            } catch (error) {
+                console.error('Failed to load cities database');
+            }
+        }
+        
+        // UI Functions
+        function updateCurrentWeatherUI(data, cityName, countryCode) {
+            const { main, wind, weather, dt } = data;
+            const date = new Date(dt * 1000);
+            
+            document.getElementById('currentCity').textContent = `${cityName}${countryCode ? `, ${countryCode}` : ''}`;
+            document.getElementById('currentDate').textContent = date.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            document.getElementById('currentTemp').textContent = `${Math.round(main.temp)}°C`;
+            document.getElementById('currentWind').textContent = `${wind.speed} m/s`;
+            document.getElementById('currentHumidity').textContent = `${main.humidity}%`;
+            document.getElementById('currentConditions').textContent = weather[0].description;
+            document.getElementById('currentWeatherIcon').innerHTML = getWeatherIcon(weather[0].icon);
+            
+            const weatherIconCode = weather[0].icon;
+            if (weatherAnimations[weatherIconCode]) {
+                lottieWeather.innerHTML = `
+                    <lottie-player 
+                        src="${weatherAnimations[weatherIconCode]}" 
+                        background="transparent" 
+                        speed="1" 
+                        style="width: 100px; height: 100px;" 
+                        loop 
+                        autoplay
+                        class="float-animation"
+                    ></lottie-player>
+                `;
+            }
+            
+            currentWeather.classList.remove('hidden');
+            currentWeather.classList.add('animate__fadeIn');
+        }
+        
+        function updateForecastUI(data) {
+            forecastContainer.innerHTML = '';
+            
+            const dailyForecasts = [];
+            for (let i = 4; i < data.list.length; i += 8) {
+                dailyForecasts.push(data.list[i]);
+            }
+            
+            dailyForecasts.forEach((forecast, index) => {
+                const date = new Date(forecast.dt * 1000);
+                const dayCard = document.createElement('div');
+                dayCard.className = 'weather-card p-6 animate__animated animate__fadeInUp';
+                dayCard.style.animationDelay = `${index * 0.1}s`;
+                
+                dayCard.innerHTML = `
+                    <div class="text-center">
+                        <p class="font-bold text-xl mb-1">${date.toLocaleDateString('en-US', { weekday: 'short' })}</p>
+                        <p class="text-sm text-gray-600 mb-4">${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                        <div class="my-4 flex justify-center">
+                            ${getWeatherIcon(forecast.weather[0].icon, 'text-4xl')}
+                        </div>
+                        <p class="text-2xl font-bold text-blue-600 mb-1">${Math.round(forecast.main.temp)}°C</p>
+                        <div class="flex justify-center gap-2 text-sm text-gray-600">
+                            <span>💨 ${forecast.wind.speed} m/s</span>
+                            <span>💧 ${forecast.main.humidity}%</span>
+                        </div>
+                    </div>
+                `;
+                
+                forecastContainer.appendChild(dayCard);
+            });
+        }
+        
+        function showAutocompleteSuggestions(query) {
+            if (!citiesDatabase.length) {
+                autocompleteDropdown.classList.add('hidden');
+                return;
+            }
+            
+            const filteredCities = citiesDatabase.filter(city => 
+                city.name.toLowerCase().includes(query.toLowerCase())
+            ).slice(0, 5);
+            
+            if (!filteredCities.length) {
+                autocompleteDropdown.classList.add('hidden');
+                return;
+            }
+            
+            autocompleteDropdown.innerHTML = '';
+            filteredCities.forEach(city => {
+                const option = document.createElement('div');
+                option.className = 'px-4 py-3 hover:bg-blue-50 cursor-pointer flex items-center gap-2';
+                option.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>${city.name}, ${city.country}</span>
+                `;
+                option.addEventListener('click', () => {
+                    cityInput.value = city.name;
+                    autocompleteDropdown.classList.add('hidden');
+                    fetchWeather(city.name);
+                });
+                autocompleteDropdown.appendChild(option);
+            });
+            
+            autocompleteDropdown.classList.remove('hidden');
+        }
+        
+        // Utility Functions
+        function getWeatherIcon(iconCode, sizeClass = 'text-5xl') {
+            const iconMap = {
+                '01d': '☀️',
+                '01n': '🌙',
+                '02d': '⛅',
+                '02n': '⛅',
+                '03d': '☁️',
+                '03n': '☁️',
+                '04d': '☁️',
+                '04n': '☁️',
+                '09d': '🌧️',
+                '09n': '🌧️',
+                '10d': '🌦️',
+                '10n': '🌦️',
+                '11d': '⛈️',
+                '11n': '⛈️',
+                '13d': '❄️',
+                '13n': '❄️',
+                '50d': '🌫️',
+                '50n': '🌫️'
+            };
+            return `<span class="${sizeClass}">${iconMap[iconCode] || '🌈'}</span>`;
+        }
+        
+        function addToRecentSearches(city) {
+            recentCitiesList = recentCitiesList.filter(item => item.toLowerCase() !== city.toLowerCase());
+            recentCitiesList.unshift(city);
+            
+            if (recentCitiesList.length > MAX_RECENT_SEARCHES) {
+                recentCitiesList.pop();
+            }
+            
+            localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recentCitiesList));
+            updateRecentSearchesUI();
+        }
+        
+        function updateRecentSearchesUI() {
+            if (recentCitiesList.length === 0) {
+                recentSearches.classList.add('hidden');
+                return;
+            }
+            
+            recentCities.innerHTML = '<option value="">🔍 Recently searched cities</option>';
+            recentCitiesList.forEach(city => {
+                const option = document.createElement('option');
+                option.value = city;
+                option.textContent = city;
+                recentCities.appendChild(option);
+            });
+            
+            recentSearches.classList.remove('hidden');
+        }
+        
+        function loadLastSearchedCity() {
+            if (recentCitiesList.length > 0) {
+                cityInput.value = recentCitiesList[0];
+                fetchWeather(recentCitiesList[0]);
+            }
+        }
+        
+        function showError(message) {
+            errorContainer.classList.remove('hidden');
+            document.getElementById('errorMessage').textContent = message;
+        }
+        
+        function hideError() {
+            errorContainer.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
